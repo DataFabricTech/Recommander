@@ -1,4 +1,7 @@
+fastapi~=0.112.1
+requests~=2.32.3
 numpy~=2.0.1
 hdbscan~=0.8.38.post1
 pandas~=2.2.2
 scikit-learn~=1.5.1
+PyYAML~=6.0.2

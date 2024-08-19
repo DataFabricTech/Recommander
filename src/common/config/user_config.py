@@ -187,6 +187,7 @@ class _External:
 
 
 class Config(BaseConfig):
+    # TODO Recommender에 맞는 default Config로의 설정 필요
     log = _Log()
     server = _Server()
     session = _Session()
@@ -202,18 +203,20 @@ class Config(BaseConfig):
     rsa_file = _RSAFile()
     ima = _IMA()
     internal = _Internal()
-    external = _External()
     minio = _Minio()
     file_manager = _FileManager()
 
 
 if __name__ == '__main__':
-    Config.init('/home/ubuntu1/mobigen/IRIS-Data-Source-Executor/conf/jaguar.yml')
-    print(Config.server.host)
-    print(type(Config.server.uvicorn), Config.server.uvicorn)
-    print(Config.log.level)
-    print(Config.internal.maximum_size)
+    configPath = "/Users/koseungbeom/git/Recommender/config_templates/config.yml"
+    Config.init("/Users/koseungbeom/git/Recommender/config_templates/config.yml")
+
+    # Config.init('/home/ubuntu1/mobigen/IRIS-Data-Source-Executor/conf/jaguar.yml')
+    # print(Config.server.host)
+    # print(type(Config.server.uvicorn), Config.server.uvicorn)
+    # print(Config.log.level)
+    # print(Config.internal.maximum_size)
     # print(Config.internal.batch_rows)
-    print(Config.internal.get_maximum_size())
-    print(Config.join.maximum_size)
-    print(Config.join.get_maximum_size())
+    # print(Config.internal.get_maximum_size())
+    # print(Config.join.maximum_size)
+    # print(Config.join.get_maximum_size())

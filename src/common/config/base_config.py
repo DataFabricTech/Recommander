@@ -1,40 +1,39 @@
-import logging
-import types
-
 import yaml
 
 
 class Struct(object):
     def __init__(self, default_obj, obj):
+        self.merge_objects(default_obj, obj)
+
+    def merge_objects(self, default_obj, obj):
+        # 기본 객체와 새로운 객체를 병합
         for k, v in obj.items():
+            default_struct = getattr(default_obj, k, None)
             if isinstance(v, dict):
-                default_struct = None
-                try:
-                    default_struct = getattr(default_obj, k)
-                except AttributeError:
-                    pass
-
-                setattr(self, k, Struct(getattr(default_obj, k, v), v))
-
-                if default_struct is not None:
-                    new_struct = getattr(default_obj, k)
-                    for default_k in dir(default_struct):
-                        if default_k.startswith('_'):
-                            continue
-                        if default_k not in dir(new_struct):
-                            setattr(new_struct, default_k, getattr(default_struct, default_k))
+                setattr(self, k, Struct(default_struct, v))
+                self.copy_default_attributes(default_struct, k)
             else:
                 setattr(self, k, v)
 
-        for default_k in dir(default_obj):
-            if default_k.startswith('_'):
-                continue
+        # 기본 객체의 속성을 새로운 객체에 없는 경우 추가
+        self.add_missing_attributes(default_obj, obj)
 
-            if default_k not in obj:
-                v = getattr(default_obj, default_k)
-                if isinstance(v, types.BuiltinMethodType):
+    def copy_default_attributes(self, default_struct, k):
+        # 기본 속성을 복사
+        if default_struct is not None:
+            new_struct = getattr(self, k)
+            for default_k in dir(default_struct):
+                if default_k.startswith('_'):
                     continue
-                setattr(self, default_k, v)
+                if default_k not in dir(new_struct):
+                    setattr(new_struct, default_k, getattr(default_struct, default_k))
+
+    def add_missing_attributes(self, default_obj, obj):
+        for default_k in dir(default_obj):
+            if default_k.startswith('_') or default_k in obj:
+                continue
+            v = getattr(default_obj, default_k)
+            setattr(self, default_k, v)
 
     def __getitem__(self, val):
         return self.__dict__[val]
@@ -44,64 +43,55 @@ class Struct(object):
 
 
 class BaseConfig(object):
-    """
-    기본 Configuration
-    """
-    CONFIG_FILE_PATH = None
+    CONFIG_FILE_PATH = "/app/config_templates/config.yml"
     config = None
 
     @classmethod
-    def validation_check(cls):
-        """config 파일에 쓴 데이터가 사용가능한 형태인지 확인
-
-        :return:
-        """
-        pass
-
-    @classmethod
-    def init(cls, config_file_path):
-        """ config 파일에 내용을 객체로 읽어오는 init
-
-        :param config_file_path:
-        :return:
-        """
-        cls.CONFIG_FILE_PATH = config_file_path
+    def init(cls, config_file_path=None):
+        config_file_path = config_file_path or cls.CONFIG_FILE_PATH
         if cls.config is None:
             try:
-                with open(cls.CONFIG_FILE_PATH) as fd:
-                    for k, v in yaml.load(fd, Loader=yaml.FullLoader).items():
-                        default_struct = None
-                        try:
-                            default_struct = getattr(cls, k)
-                        except AttributeError:
-                            pass
+                with open(config_file_path) as fd:
+                    loaded_config = yaml.safe_load(fd)
+                    cls.apply_config(loaded_config)
+            except FileNotFoundError:
+                print(f"Config file {config_file_path} not found.")
 
-                        if isinstance(v, dict):
-                            setattr(cls, k, Struct(getattr(cls, k, v), v))
+    @classmethod
+    def apply_config(cls, config_data):
+        for k, v in config_data.items():
+            default_struct = getattr(cls, k, None)
 
-                            # default 값을 매핑 시키기 위한 용도
-                            if default_struct is not None:
-                                new_struct = getattr(cls, k)
-                                for default_k in dir(default_struct):
-                                    if default_k.startswith('_'):
-                                        continue
-                                    if default_k not in dir(new_struct):
-                                        setattr(new_struct, default_k, getattr(default_struct, default_k))
-                        else:
-                            setattr(cls, k, v)
+            if isinstance(v, dict):
+                setattr(cls, k, Struct(default_struct, v))
+                if default_struct:
+                    cls.copy_default_to_new_struct(k, default_struct)
+            else:
+                setattr(cls, k, v)
 
-                        # 정의된 validation_check 를 실행하기 위한 용도
-                        if 'validation_check' in dir(default_struct):
-                            checker = getattr(default_struct, 'validation_check')
-                            _tmp = getattr(cls, k)
-                            for kk in dir(_tmp):
-                                if kk.startswith('_'):
-                                    continue
-                                setattr(default_struct, kk, getattr(_tmp, kk))
-                            checker()
+            # 유효성 검사 실행
+            cls.run_validation_check(default_struct, k)
 
-            except Exception as err:
-                logging.fatal(f"config load error {err}")
-                raise
+    @classmethod
+    def copy_default_to_new_struct(cls, k, default_struct):
+        new_struct = getattr(cls, k)
+        for default_k in dir(default_struct):
+            if default_k.startswith('_'):
+                continue
+            if default_k not in dir(new_struct):
+                setattr(new_struct, default_k, getattr(default_struct, default_k))
 
-            # cls.validation_check()
+    @classmethod
+    def run_validation_check(cls, default_struct, k):
+        if default_struct and 'validation_check' in dir(default_struct):
+            checker = getattr(default_struct, 'validation_check')
+            _tmp = getattr(cls, k)
+            for kk in dir(_tmp):
+                if kk.startswith('_'):
+                    continue
+                setattr(default_struct, kk, getattr(_tmp, kk))
+            checker()
+
+
+if __name__ == '__main__':
+    a = OtherClass.config
