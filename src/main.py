@@ -1,7 +1,10 @@
-from app.init.config import Config
 from app.routers import routers
 from app.server import *
 from common.log import *
+
+from app.services.open_metadata_service import init_clustering
+
+from apscheduler.schedulers.background import BackgroundScheduler
 
 '''
 1. '신규 데이터'에 대한 기존 데이터 추천
@@ -61,5 +64,8 @@ if __name__ == '__main__':
             debug=Config.sentry.debug,
             environment=Config.sentry.environment,
         )
+    scheduler = BackgroundScheduler()
+
+    scheduler.add_job(init_clustering, 'cron', hour=Config.cron.hour, minute=Config.cron.minute)
 
     start()

@@ -1,0 +1,44 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+  workers: 1
+  process_timeout: 60
+  download_encode: utf-8
+
+log:
+  logfile: logs/jaguar.log
+  level: INFO
+
+sentry:
+  enable: False
+  dsn: https://examplePublicKey@o0.ingest.sentry.io/0  # DSN include token of Sentry and url
+  level: 20  # Capture info and above as breadcrumbs. level -> 0:NOTSET, 10:DEBUG, 20:INFO, 30:WARNING, 40:ERROR, 50:CRITICAL
+  event_level: 40  # Send errors as events. level -> 0:NOTSET, 10:DEBUG, 20:INFO, 30:WARNING, 40:ERROR, 50:CRITICAL
+  traces_sample_rate: 0.1  # 0 to not send this trace to Sentry. Between 0 and 1 to send this trace to Sentry.
+  traces_exclude_urls:
+    - /jaguar/docs
+    - /jaguar/redoc
+    - /jaguar/openapi.json
+  environment: dev
+
+log_server:
+  host: 0.0.0.0
+  port: 19009
+
+cron:
+  hour: 2
+  minute: 0
+
+open_metadata:
+  host: localhost
+  port: 8080
+  id: root
+  pw: PASSWORD
+  limit: 10000000
+  min_cluster_size: 2
+  top_n: 5
+
+
+
+
+

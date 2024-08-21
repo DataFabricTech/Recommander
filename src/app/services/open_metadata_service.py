@@ -1,7 +1,6 @@
 import requests
 import pickle
 
-import numpy as np
 import json
 import hdbscan
 import pandas as pd
@@ -9,9 +8,6 @@ import pandas as pd
 from app.init.config import Config
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from open_metadata_service import get_document
 
 '''
 TfidfVectorizer().fit_transform() - `train data`에 사용해야하는 함수 (label(?)을 만드는 작업)
@@ -58,12 +54,11 @@ def get_token():
 
     :return: token: string
     '''
-    # todo open metadata에 대한 config 추가 (host, port, login_url, document_url, email, password, limit)
-    url = f"http://{Config.OPEN_METADATA_HOST}:{Config.OPEN_METADATA_PORT}/{Config.OPEN_METADATA_LOGIN_URL}"
+    url = Config.open_metadata.login_url
 
     payload = json.dumps({
-        "email": Config.OPEN_METADATA_ID,
-        "password": Config.OPEN_METADATA_PW
+        "email": Config.open_metadata.id,
+        "password": Config.open_metadata.pw
     })
     headers = {
         'Content-Type': 'application/json'
@@ -74,14 +69,13 @@ def get_token():
     return json.loads(response.text)['accessToken']
 
 
-def get_document():
+def get_documents():
     '''
     등록되어 있는 데이터 모델을 가져오는 함수
 
     :return: documents:List[str] - list of data model, fqn:str - list of data model's fqn
     '''
-    url = (f"http://{Config.OPEN_METADATA_HOST}:{Config.OPEN_METADATA_PORT}/{Config.OPEN_METADATA_DOCUMENT_URL}"
-           f"?limit={Config.OPEN_METADATA_LIMIT}")
+    url = Config.open_metadata.document_url
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
@@ -99,19 +93,34 @@ def get_document():
     return documents, fqns
 
 
-# todo scheduler 필요
+def get_data(fqn: str, table_type: bool):
+    '''
+    새로운 데이터를 가져오는 함수
+    :return: data: json
+    '''
+    url = (f"{(Config.open_metadata.table_url if table_type else Config.open_metadata.storage_url)}"
+           f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
+    token = get_token()
+    header = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    response = requests.request("GET", url, headers=header, data={})
+    return json.loads(response.text)
+
+
 def init_clustering():
     '''
     기존 데이터를 이용한 clustering 생성
     :return:
     '''
-    documents, fqns = get_document()
+
+    documents, fqns = get_documents()
 
     vectorizer = TfidfVectorizer()
     X = vectorizer.fit_transform(documents)
 
-    # todo min_cluster_size를 config로 받아 드리게끔 변경 필요
-    hdbscan_clusterer = hdbscan.HDBSCAN(min_cluster_size=2, metric='cosine')
+    hdbscan_clusterer = hdbscan.HDBSCAN(min_cluster_size=Config.open_metadata.min_cluster_size, metric='cosine')
     labels = hdbscan_clusterer.fit_predict(X)
 
     df = pd.DataFrame({'document': documents, 'fqn': fqns, 'labels': labels})
@@ -119,33 +128,3 @@ def init_clustering():
 
     with open('vectorizer.pkl', 'wb') as f:
         pickle.dump(vectorizer, f)
-
-
-# todo 새로운 데이터를 매개변수로 받아야한다. new_data -> arg
-# todo fqn에 대한 return이 들어가야한다.
-def find_similar_data():
-    '''
-    Clustering된 데이터를 이용한 데이터 추천 기능
-    '''
-    with open('vectorizer.pkl', 'rb') as f:
-        vectorizer = pickle.load(f)
-
-    df_existing = pd.read_csv('hdbscan_clusters.csv')
-    existing_documents = df_existing['document'].tolist()
-    existing_fqn = df_existing['fqn'].tolist()
-
-    new_document = [extract_text_from_table_json(json.loads(new_data))[0]]
-
-    x_new = vectorizer.transform(new_document)
-    top_n = 5
-
-    for i, new_doc in enumerate(new_document):
-        similarities = cosine_similarity(x_new[i], vectorizer.transform(existing_documents))
-        most_similar_idx = np.argmax(similarities)
-        top_indices = np.argsort(similarities.flatten())[-top_n:]
-
-        print(f"new Document\n{new_doc}")
-        print(f"\nMost Similar Existing Document\n{existing_documents[most_similar_idx]}")
-        print(f"\nMost Similar Found Document's FQN\n{existing_fqn[most_similar_idx]}")
-        print(f"\nTop Similar Exist Document's index: {list(map(int, reversed(top_indices)))}")
-        print()
