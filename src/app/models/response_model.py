@@ -1,17 +1,21 @@
 from pydantic import BaseModel
+from typing import Union
+
+
+class MessageModel(BaseModel):
+    message: str
+
+
+class RecommendationModel(BaseModel):
+    fqn: str
+
+
+class ErrorModel(BaseModel):
+    detail: str
 
 
 class BaseCommonModel(BaseModel):
     status: int
-    data: any
-    message: str
-    code: str
-
-
-class ErrorModel(BaseCommonModel):
-    detail: str
-
-
-class RecommendationModel(BaseCommonModel):
-    fqn: str
-
+    code: str = None
+    data: Union[RecommendationModel, MessageModel] = None
+    error: ErrorModel = None

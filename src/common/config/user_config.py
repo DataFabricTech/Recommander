@@ -51,11 +51,20 @@ class _OpenMetadata:
     pw = 'PASSWORD'
     limit = '1000000'
     min_cluster_size = 2
-    login_url = 'http://{}:{}/api/v1/users/login'.format(host, port)
-    document_url = 'http://{}:{}/api/v1/tables?limit={}'.format(host, port, limit)
     top_n = 5
-    table_url = 'http://{}:{}/api/v1/tables/name/'.format(host, port)
-    storage_url = 'http://{}:{}/api/v1/containers/name/'.format(host, port)
+    trained_model_path = './trained_models/'
+
+    def get_table_url(self):
+        return 'http://{}:{}/api/v1/tables/name/'.format(self.host, self.port)
+
+    def get_document_url(self):
+        return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.limit)
+
+    def get_login_url(self):
+        return 'http://{}:{}/api/v1/users/login'.format(self.host, self.port)
+
+    def get_storage_url(self):
+        return 'http://{}:{}/api/v1/containers/name/'.format(self.host, self.port)
 
 
 class Config(BaseConfig):

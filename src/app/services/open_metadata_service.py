@@ -54,11 +54,14 @@ def get_token():
 
     :return: token: string
     '''
-    url = Config.open_metadata.login_url
+
+    import base64
+
+    url = Config.open_metadata.get_login_url()
 
     payload = json.dumps({
         "email": Config.open_metadata.id,
-        "password": Config.open_metadata.pw
+        "password": base64.b64encode(Config.open_metadata.pw.encode('utf-8')).decode('utf-8')
     })
     headers = {
         'Content-Type': 'application/json'
@@ -75,7 +78,8 @@ def get_documents():
 
     :return: documents:List[str] - list of data model, fqn:str - list of data model's fqn
     '''
-    url = Config.open_metadata.document_url
+
+    url = Config.open_metadata.get_document_url()
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
@@ -98,7 +102,7 @@ def get_data(fqn: str, table_type: bool):
     새로운 데이터를 가져오는 함수
     :return: data: json
     '''
-    url = (f"{(Config.open_metadata.table_url if table_type else Config.open_metadata.storage_url)}"
+    url = (f"{(Config.open_metadata.get_table_url() if table_type else Config.open_metadata.get_storage_url())}"
            f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
     token = get_token()
     header = {
@@ -124,7 +128,7 @@ def init_clustering():
     labels = hdbscan_clusterer.fit_predict(X)
 
     df = pd.DataFrame({'document': documents, 'fqn': fqns, 'labels': labels})
-    df.to_csv('hdbscan_clusters.csv', index=False)
+    df.to_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv', index=False)
 
-    with open('vectorizer.pkl', 'wb') as f:
+    with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'wb') as f:
         pickle.dump(vectorizer, f)

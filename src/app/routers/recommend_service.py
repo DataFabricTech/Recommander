@@ -8,13 +8,14 @@ import pandas as pd
 from fastapi import APIRouter, Query
 from sklearn.metrics.pairwise import cosine_similarity
 
-from app.models.response_model import RecommendationModel, ErrorModel
+from app.models.response_model import BaseCommonModel, ErrorModel, RecommendationModel
 from app.services.open_metadata_service import extract_text_from_table_json, get_data
+from common.config import Config
 
 logging = logging.getLogger()
 
 router = APIRouter(
-    prefix=os.path.join("/recommender/predict"),
+    prefix=os.path.join("/api/recommender/predict"),
     tags=['ML Predict'],
 )
 
@@ -23,14 +24,14 @@ def __find_similar_data(data):
     '''
     Clustering된 데이터를 이용한 데이터 추천 기능
     '''
-    with open('vectorizer.pkl', 'rb') as f:
+    with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'rb') as f:
         vectorizer = pickle.load(f)
 
-    df_existing = pd.read_csv('hdbscan_clusters.csv')
+    df_existing = pd.read_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv')
     existing_documents = df_existing['document'].tolist()
     existing_fqn = df_existing['fqn'].tolist()
 
-    new_document = [extract_text_from_table_json(json.loads(data))[0]]
+    new_document = [extract_text_from_table_json(data)[0]]
 
     x_new = vectorizer.transform(new_document)
 
@@ -47,11 +48,10 @@ def __find_most_similar_data(fqn, table_type):
         similarities = cosine_similarity(x_new[i], vectorizer.transform(existing_documents))
         most_similar_idx = np.argmax(similarities)
 
-    return existing_fqn[most_similar_idx] if most_similar_idx is not -1 else None
+    return existing_fqn[most_similar_idx] if most_similar_idx != -1 else None
 
 
 def __find_top_n_similar_documents(data):
-    from common.config import Config
     existing_documents, existing_fqn, new_document, vectorizer, x_new = __find_similar_data(data)
     top_n_fqn = []
     for i, new_doc in enumerate(new_document):
@@ -63,20 +63,19 @@ def __find_top_n_similar_documents(data):
     return top_n_fqn
 
 
-@router.post(path="/api/recommend",
-             response_model=RecommendationModel,
-             summary='Find the most similar',
-             description='This API uses machine learning results to find the most similar data to the currently '
-                         'provided value',
-             tags=['recommendation'],
-             responses={
-                 404: {"description": "No data found", "model": ErrorModel}
-             })
+@router.get(path="/recommend",
+            response_model=BaseCommonModel,
+            summary='Find the most similar',
+            description='This API uses machine learning results to find the most similar data to the currently '
+                        'provided value',
+            tags=['recommendation'],
+            responses={
+                404: {"description": "No data found", "model": BaseCommonModel}
+            })
 def recommendation_data_model(
         fqn: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 fqn 값'),
         table_type: bool = Query(True, description='찾으려 하는 data의 type (table - True, storage - false)')):
     found_fqn = __find_most_similar_data(fqn, table_type)
     if found_fqn == -1:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f'No data found with {fqn}')
-    return RecommendationModel(status=200, fqn=found_fqn)
+        return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {fqn}'))
+    return BaseCommonModel(status=200, data=RecommendationModel(fqn=found_fqn))

@@ -78,8 +78,8 @@ class BaseConfig(object):
         for default_k in dir(default_struct):
             if default_k.startswith('_'):
                 continue
-            if default_k not in dir(new_struct):
-                setattr(new_struct, default_k, getattr(default_struct, default_k))
+            if default_k in dir(new_struct):
+                setattr(default_struct, default_k, getattr(new_struct, default_k))
 
     @classmethod
     def run_validation_check(cls, default_struct, k):
@@ -94,4 +94,4 @@ class BaseConfig(object):
 
 
 if __name__ == '__main__':
-    a = OtherClass.config
+    print()
