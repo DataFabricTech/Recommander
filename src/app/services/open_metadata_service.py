@@ -1,13 +1,10 @@
+import logging
+
 import requests
-import pickle
 
 import json
-import hdbscan
-import pandas as pd
 
 from app.init.config import Config
-
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 '''
 TfidfVectorizer().fit_transform() - `train data`에 사용해야하는 함수 (label(?)을 만드는 작업)
@@ -15,6 +12,8 @@ TfidfVectorizer().transform() - train data를 이용하여 `test data`에 적용
 
 clustering은 memory가 많이 드는 작업으로, 주기적(새벽 시간대)를 이용한 Clustering 구축하는 것이 좋아보인다. 
 '''
+
+logger = logging.getLogger()
 
 
 def extract_text_from_table_json(json_data):
@@ -54,22 +53,33 @@ def get_token():
 
     :return: token: string
     '''
+    logger.debug("get open metadata token")
 
     import base64
 
     url = Config.open_metadata.get_login_url()
+    try:
+        payload = json.dumps({
+            "email": Config.open_metadata.id,
+            "password": base64.b64encode(Config.open_metadata.pw.encode('utf-8')).decode('utf-8')
+        })
+    except (AttributeError, TypeError) as e:
+        logger.error(f"base64 encode error: {e}")
+        raise
 
-    payload = json.dumps({
-        "email": Config.open_metadata.id,
-        "password": base64.b64encode(Config.open_metadata.pw.encode('utf-8')).decode('utf-8')
-    })
     headers = {
         'Content-Type': 'application/json'
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload)
-
-    return json.loads(response.text)['accessToken']
+    try:
+        response = requests.request("POST", url, headers=headers, data=payload)
+        return json.loads(response.text)['accessToken']
+    except requests.exceptions.RequestException as e:
+        logger.error(f"request exception: {e}")
+        raise
+    except json.decoder.JSONDecodeError as e:
+        logger.error(f"Json load error: {e}")
+        raise
 
 
 def get_documents():
@@ -78,6 +88,7 @@ def get_documents():
 
     :return: documents:List[str] - list of data model, fqn:str - list of data model's fqn
     '''
+    logger.debug("get open metadata document")
 
     url = Config.open_metadata.get_document_url()
     token = get_token()
@@ -85,10 +96,19 @@ def get_documents():
         "Authorization": f"Bearer {token}"
     }
 
-    response = requests.request("GET", url, headers=header, data={})
-    tables = json.loads(response.text)
     documents = []
     fqns = []
+
+    try:
+        response = requests.request("GET", url, headers=header, data={})
+        tables = json.loads(response.text)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"RequestException error: {e}")
+        raise
+    except json.decoder.JSONDecodeError as e:
+        logger.error(f"Json load error: {e}")
+        raise
+
     for json_data in tables['data']:
         document, fqn = extract_text_from_table_json(json_data)
         documents.append(document)
@@ -102,6 +122,8 @@ def get_data(fqn: str, table_type: bool):
     새로운 데이터를 가져오는 함수
     :return: data: json
     '''
+    logger.debug("get open metadata data")
+
     url = (f"{(Config.open_metadata.get_table_url() if table_type else Config.open_metadata.get_storage_url())}"
            f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
     token = get_token()
@@ -109,26 +131,12 @@ def get_data(fqn: str, table_type: bool):
         "Authorization": f"Bearer {token}"
     }
 
-    response = requests.request("GET", url, headers=header, data={})
-    return json.loads(response.text)
-
-
-def init_clustering():
-    '''
-    기존 데이터를 이용한 clustering 생성
-    :return:
-    '''
-
-    documents, fqns = get_documents()
-
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(documents)
-
-    hdbscan_clusterer = hdbscan.HDBSCAN(min_cluster_size=Config.open_metadata.min_cluster_size, metric='cosine')
-    labels = hdbscan_clusterer.fit_predict(X)
-
-    df = pd.DataFrame({'document': documents, 'fqn': fqns, 'labels': labels})
-    df.to_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv', index=False)
-
-    with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'wb') as f:
-        pickle.dump(vectorizer, f)
+    try:
+        response = requests.request("GET", url, headers=header, data={})
+        return json.loads(response.text)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"request exception: {e}")
+        raise
+    except json.decoder.JSONDecodeError as e:
+        logger.error(f"Json load error: {e}")
+        raise

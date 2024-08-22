@@ -1,11 +1,12 @@
 import logging
 import os
+from pickle import PickleError
 
 from fastapi import APIRouter
 
 from app.models.response_model import BaseCommonModel, ErrorModel, MessageModel
 
-logging = logging.getLogger()
+logger = logging.getLogger()
 
 router = APIRouter(
     prefix=os.path.join("/api/recommender/training"),
@@ -28,21 +29,33 @@ def __init_clustering():
 
     documents, fqns = get_documents()
 
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(documents)
+    try:
+        vectorizer = TfidfVectorizer()
+        x = vectorizer.fit_transform(documents)
+    except (ValueError, TypeError) as e:
+        logger.error(f"Vectorization error: {e}")
+        raise
 
-    hdbscan_clusterer = hdbscan.HDBSCAN(min_cluster_size=Config.open_metadata.min_cluster_size, metric='cosine')
-    labels = hdbscan_clusterer.fit_predict(X)
+    try:
+        hdbscan_clusterer = hdbscan.HDBSCAN(min_cluster_size=Config.open_metadata.min_cluster_size, metric='cosine')
+        labels = hdbscan_clusterer.fit_predict(x)
+    except ValueError as e:
+        logger.error(f"HDBSCAN error: {e}")
+        raise
 
-    df = pd.DataFrame({'document': documents, 'fqn': fqns, 'labels': labels})
+    try:
+        df = pd.DataFrame({'document': documents, 'fqn': fqns, 'labels': labels})
 
-    if not os.path.exists(Config.open_metadata.trained_model_path):
-        os.makedirs(Config.open_metadata.trained_model_path)
+        if not os.path.exists(Config.open_metadata.trained_model_path):
+            os.makedirs(Config.open_metadata.trained_model_path)
 
-    df.to_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv', index=False)
+        df.to_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv', index=False)
 
-    with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'wb') as f:
-        pickle.dump(vectorizer, f)
+        with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'wb') as f:
+            pickle.dump(vectorizer, f)
+    except (FileNotFoundError, IOError, PickleError) as e:
+        logger.error(f"File write Error: {e}")
+        raise
 
 
 @router.get(path='',

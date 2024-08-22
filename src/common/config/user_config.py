@@ -15,7 +15,7 @@ class _Server:
 
 class _Log:
     level = "INFO"
-    logfile = "logs/jaguar.log"
+    logfile = "logs/recommender.log"
 
     def validation_check(self):
         self.level = self.level.upper()
@@ -68,8 +68,8 @@ class _OpenMetadata:
 
 
 class Config(BaseConfig):
-    log = _Log()  # todo check
-    server = _Server()  # todo check
+    log = _Log()
+    server = _Server()
     log_server = _LogServer()  # todo check
     sentry = _Sentry()  # todo check
 
@@ -81,7 +81,6 @@ if __name__ == '__main__':
     configPath = "/Users/koseungbeom/git/Recommender/config_templates/config.yml"
     Config.init("/Users/koseungbeom/git/Recommender/config_templates/config.yml")
 
-    # Config.init('/home/ubuntu1/mobigen/IRIS-Data-Source-Executor/conf/jaguar.yml')
     # print(Config.server.host)
     # print(type(Config.server.uvicorn), Config.server.uvicorn)
     # print(Config.log.level)

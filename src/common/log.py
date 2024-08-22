@@ -79,9 +79,9 @@ def setup_logger(handler_name=None):
 
     log.handlers.clear()
 
-    socket_handler = logging.handlers.DatagramHandler(host=log_server_host, port=log_server_port)
-    socket_handler.setFormatter(formatter)
-    log.addHandler(socket_handler)
+    log.addHandler(logging.StreamHandler())
+    for handler in log.handlers:
+        handler.setFormatter(formatter)
 
 
 setup_logger()

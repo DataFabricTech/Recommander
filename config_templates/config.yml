@@ -6,7 +6,7 @@ server:
   download_encode: utf-8
 
 log:
-  logfile: logs/jaguar.log
+  logfile: logs/recommender.log
   level: INFO
 
 sentry:
@@ -16,9 +16,9 @@ sentry:
   event_level: 40  # Send errors as events. level -> 0:NOTSET, 10:DEBUG, 20:INFO, 30:WARNING, 40:ERROR, 50:CRITICAL
   traces_sample_rate: 0.1  # 0 to not send this trace to Sentry. Between 0 and 1 to send this trace to Sentry.
   traces_exclude_urls:
-    - /jaguar/docs
-    - /jaguar/redoc
-    - /jaguar/openapi.json
+    - /recommender/docs
+    - /recommender/redoc
+    - /recommender/openapi.json
   environment: dev
 
 log_server:

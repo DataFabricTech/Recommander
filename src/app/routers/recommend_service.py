@@ -12,7 +12,7 @@ from app.models.response_model import BaseCommonModel, ErrorModel, Recommendatio
 from app.services.open_metadata_service import extract_text_from_table_json, get_data
 from common.config import Config
 
-logging = logging.getLogger()
+logger = logging.getLogger()
 
 router = APIRouter(
     prefix=os.path.join("/api/recommender/predict"),
@@ -23,19 +23,43 @@ router = APIRouter(
 def __find_similar_data(data):
     '''
     Clustering된 데이터를 이용한 데이터 추천 기능
+    :returns existring_document 클러스터링된 데이터들
+             existring_fqn 클러스터링된 데이터들의 fqn
+             new_document 추천시스템을 사용하고자 하는 데이터
+             vectorizer 클러스터링된 데이터들의 vectorizer
+             x_new vectorizer를 이용한 값
     '''
-    with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'rb') as f:
-        vectorizer = pickle.load(f)
+    try:
+        with open(Config.open_metadata.trained_model_path + '/vectorizer.pkl', 'rb') as f:
+            vectorizer = pickle.load(f)
 
-    df_existing = pd.read_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv')
-    existing_documents = df_existing['document'].tolist()
-    existing_fqn = df_existing['fqn'].tolist()
+        df_existing = pd.read_csv(Config.open_metadata.trained_model_path + '/hdbscan_clusters.csv')
+        existing_documents = df_existing['document'].tolist()
+        existing_fqn = df_existing['fqn'].tolist()
 
-    new_document = [extract_text_from_table_json(data)[0]]
+        new_document = [extract_text_from_table_json(data)[0]]
 
-    x_new = vectorizer.transform(new_document)
+        x_new = vectorizer.transform(new_document)
 
-    return existing_documents, existing_fqn, new_document, vectorizer, x_new
+        return existing_documents, existing_fqn, new_document, vectorizer, x_new
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        raise
+    except (IOError, OSError) as e:
+        logging.error(f"File read/write error: {e}")
+        raise
+    except KeyError as e:
+        logging.error(f"CSV format error: {e}")
+        raise
+    except ValueError as e:
+        logger.error(f"Data transformation error: {e}")
+        raise
+    except AttributeError as e:
+        logger.error(f"Vectorization error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise
 
 
 def __find_most_similar_data(fqn, table_type):
@@ -44,11 +68,21 @@ def __find_most_similar_data(fqn, table_type):
 
     existing_documents, existing_fqn, new_document, vectorizer, x_new = __find_similar_data(data)
 
-    for i, new_doc in enumerate(new_document):
-        similarities = cosine_similarity(x_new[i], vectorizer.transform(existing_documents))
-        most_similar_idx = np.argmax(similarities)
+    try:
+        for i, new_doc in enumerate(new_document):
+            similarities = cosine_similarity(x_new[i], vectorizer.transform(existing_documents))
 
-    return existing_fqn[most_similar_idx] if most_similar_idx != -1 else None
+            if similarities.size == 0:
+                raise ValueError("No similarities")
+            most_similar_idx = np.argmax(similarities)
+
+        return existing_fqn[most_similar_idx] if most_similar_idx != -1 else None
+    except ValueError as e:
+        logger.error(f"Vectorization error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error {e}")
+        raise
 
 
 def __find_top_n_similar_documents(data):
@@ -63,6 +97,7 @@ def __find_top_n_similar_documents(data):
     return top_n_fqn
 
 
+# todo async로 돌려야한다.
 @router.get(path="/recommend",
             response_model=BaseCommonModel,
             summary='Find the most similar',
@@ -75,7 +110,12 @@ def __find_top_n_similar_documents(data):
 def recommendation_data_model(
         fqn: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 fqn 값'),
         table_type: bool = Query(True, description='찾으려 하는 data의 type (table - True, storage - false)')):
-    found_fqn = __find_most_similar_data(fqn, table_type)
-    if found_fqn == -1:
-        return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {fqn}'))
-    return BaseCommonModel(status=200, data=RecommendationModel(fqn=found_fqn))
+    logger.debug("Recommendation data")
+    try:
+        found_fqn = __find_most_similar_data(fqn, table_type)
+
+        if found_fqn == -1:
+            return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {fqn}'))
+        return BaseCommonModel(status=200, data=RecommendationModel(fqn=found_fqn))
+    except Exception as e:
+        return BaseCommonModel(status=404, error=ErrorModel(detail=f'Error Occured by {e}'))
