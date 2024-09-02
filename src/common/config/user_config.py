@@ -49,7 +49,8 @@ class _OpenMetadata:
     port = '8080'
     id = 'root'
     pw = 'PASSWORD'
-    limit = '1000000'
+    document_limit = '1000000'
+    table_sample_limit = '1000000'
     min_cluster_size = 2
     top_n = 5
     trained_model_path = './trained_models/'
@@ -57,14 +58,30 @@ class _OpenMetadata:
     def get_table_url(self):
         return 'http://{}:{}/api/v1/tables/name/'.format(self.host, self.port)
 
+    def get_storage_url(self):
+        return 'http://{}:{}/api/v1/containers/name/'.format(self.host, self.port)
+
     def get_document_url(self):
-        return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.limit)
+        return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.document_limit)
 
     def get_login_url(self):
         return 'http://{}:{}/api/v1/users/login'.format(self.host, self.port)
 
-    def get_storage_url(self):
-        return 'http://{}:{}/api/v1/containers/name/'.format(self.host, self.port)
+    def get_tables_url(self):
+        return ('http://{}:{}/api/v1/tables?limit={}&include=non-deleted'
+                .format(self.host, self.port, self.table_sample_limit))
+
+    def get_tables_sample_url(self, fqn: str):
+        return 'http://{}:{}/api/v1/tables/{}/sampleData'.format(self.host, self.port, fqn)
+
+    def get_storages_sample_url(self, fqn: str):
+        return 'http://{}:{}/api/v1/containers/{}/sampleData'.format(self.host, self.port, fqn)
+
+
+class _Embedding:
+    queue_max_size = 5
+    top_similarity_threshold = 5
+
 
 
 class Config(BaseConfig):
@@ -75,6 +92,7 @@ class Config(BaseConfig):
 
     cron = _Cron()
     open_metadata = _OpenMetadata()
+    embedding = _Embedding()
 
 
 if __name__ == '__main__':

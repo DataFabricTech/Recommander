@@ -2,7 +2,7 @@ from app.routers import routers
 from app.server import *
 from common.log import *
 
-from app.routers.training_service import recommendation_data_model
+from app.routers.training_service import init_clustering
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -65,6 +65,6 @@ if __name__ == '__main__':
         )
     scheduler = BackgroundScheduler()
 
-    scheduler.add_job(recommendation_data_model, 'cron', hour=Config.cron.hour, minute=Config.cron.minute)
+    scheduler.add_job(init_clustering, 'cron', hour=Config.cron.hour, minute=Config.cron.minute)
 
     start()

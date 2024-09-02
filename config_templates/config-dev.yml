@@ -7,7 +7,7 @@ server:
 
 log:
   logfile: logs/recommender.log
-  level: INFO
+  level: DEBUG
 
 sentry:
   enable: False
@@ -30,16 +30,11 @@ cron:
   minute: 0
 
 open_metadata:
-  host: localhost
-  port: 8080
-  id: root
-  pw: PASSWORD
-  document_limit: 10000000
-  table_sample_limit: 10000000
+  host: 192.168.105.2
+  port: 8585
+  id: admin
+  pw: admin
+  limit: 100
   min_cluster_size: 2
   top_n: 5
-
-embedding:
-  queue_max_size: 5
-  top_similarity_threshold: 5
 

@@ -1,10 +1,12 @@
 import logging
 
+import pandas as pd
 import requests
 
 import json
 
 from app.init.config import Config
+from app.models.dictionary_enum import DictionaryKeys
 
 '''
 TfidfVectorizer().fit_transform() - `train data`에 사용해야하는 함수 (label(?)을 만드는 작업)
@@ -23,28 +25,28 @@ def extract_text_from_table_json(json_data):
     :return: str, fqn
     '''
     texts = []
-    texts.append(json_data['name'])
-    texts.append(json_data['description']) if 'description' in json_data else None
-    texts.append(json_data['service']['displayName'])
+    texts.append(json_data[DictionaryKeys.NAME])
+    texts.append(json_data[DictionaryKeys.DESCRIPTION]) if DictionaryKeys.DESCRIPTION in json_data else None
+    texts.append(json_data[DictionaryKeys.SERVICE][DictionaryKeys.DISPLAY_NAME])
 
-    for column in json_data['columns']:
-        texts.append(column['name'])
+    for column in json_data[DictionaryKeys.COLUMNS]:
+        texts.append(column[DictionaryKeys.NAME])
         # texts.append(column['dataType'])
-        texts.append(column['description']) if 'description' in column else None
-        for tag in column.get('tags', []):
-            texts.append(tag['tagFQN'])
-            texts.append(tag['description'])
+        texts.append(column[DictionaryKeys.DESCRIPTION]) if DictionaryKeys.DESCRIPTION in column else None
+        for tag in column.get(DictionaryKeys.TAGS, []):
+            texts.append(tag[DictionaryKeys.TAG_FQN])
+            texts.append(tag[DictionaryKeys.DESCRIPTION])
 
-    for constraint in json_data.get('tableConstraints', []):
-        texts.append(constraint['constraintType'])
-        texts.extend(constraint['columns'])
-        texts.extend(constraint.get('referredColumns', []))
+    for constraint in json_data.get(DictionaryKeys.TABLE_CONSTRAINTS, []):
+        texts.append(constraint[DictionaryKeys.CONSTRAINT_TYPE])
+        texts.extend(constraint[DictionaryKeys.COLUMNS])
+        texts.extend(constraint.get(DictionaryKeys.REFERRED_COLUMNS, []))
 
-    for tag in json_data.get('tags', []):
-        texts.append(tag['tagFQN'])
-        texts.append(tag['description'])
+    for tag in json_data.get(DictionaryKeys.TAGS, []):
+        texts.append(tag[DictionaryKeys.TAG_FQN])
+        texts.append(tag[DictionaryKeys.DESCRIPTION])
 
-    return ' '.join(texts), json_data['fullyQualifiedName']
+    return ' '.join(texts), json_data[DictionaryKeys.FULLY_QUALIFIED_NAME]
 
 
 def get_token():
@@ -140,3 +142,39 @@ def get_data(fqn: str, table_type: bool):
     except json.decoder.JSONDecodeError as e:
         logger.error(f"Json load error: {e}")
         raise
+
+
+def get_sample(fqn: str, table_type: bool):
+    logger.debug("get open metadata sample")
+    url = (f"{(Config.open_metadata.get_tables_sample_url(fqn)
+               if table_type else Config.open_metadata.get_storages_sample_url(fqn))}"
+           f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
+    token = get_token()
+    header = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    response = requests.request("GET", url, headers=header, data={})
+    response_tables = json.loads(response.text)
+    sample = {}
+    for json_data in response_tables['data']:
+        json_ = json.loads(
+            requests.request("GET", url,
+                             headers=header, data={}).text)
+
+        if DictionaryKeys.SAMPLE_DATA not in json_:
+            continue
+
+        rows = json_[DictionaryKeys.SAMPLE_DATA][DictionaryKeys.ROWS]
+
+        columns = json_[DictionaryKeys.SAMPLE_DATA][DictionaryKeys.COLUMNS]
+        sample = {}
+        df = pd.DataFrame(rows, columns=columns)
+
+        for idx, column in enumerate(columns):
+            sample[column] = {DictionaryKeys.VALUES: sorted(df[column].values, key=lambda x: (x is None, x)),
+                              DictionaryKeys.DATA_TYPE: json_[DictionaryKeys.COLUMNS][idx][DictionaryKeys.DATA_TYPE]}
+
+        sample[json_[DictionaryKeys.ID]] = {DictionaryKeys.COLUMNS: sample}
+
+    return sample

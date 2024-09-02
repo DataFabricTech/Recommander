@@ -7,7 +7,7 @@ class MessageModel(BaseModel):
 
 
 class RecommendationModel(BaseModel):
-    fqn: str
+    fqns: list
 
 
 class ErrorModel(BaseModel):

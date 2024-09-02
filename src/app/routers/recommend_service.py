@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import pickle
@@ -84,7 +83,8 @@ def __find_most_similar_data(fqn, table_type):
         logger.error(f"Unexpected error {e}")
         raise
 
-
+# todo table_Type 추가 및 data -> fqn으로 변경 필요
+# todo 작동 Test 및 bug fix
 def __find_top_n_similar_documents(data):
     existing_documents, existing_fqn, new_document, vectorizer, x_new = __find_similar_data(data)
     top_n_fqn = []
@@ -97,8 +97,8 @@ def __find_top_n_similar_documents(data):
     return top_n_fqn
 
 
-# todo async로 돌려야한다.
-@router.get(path="/recommend",
+# todo 비동기 API로의 변경 필요
+@router.get(path="/cluster_recommend",
             response_model=BaseCommonModel,
             summary='Find the most similar',
             description='This API uses machine learning results to find the most similar data to the currently '
@@ -107,15 +107,17 @@ def __find_top_n_similar_documents(data):
             responses={
                 404: {"description": "No data found", "model": BaseCommonModel}
             })
-def recommendation_data_model(
+def cluster_recommend(
         fqn: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 fqn 값'),
         table_type: bool = Query(True, description='찾으려 하는 data의 type (table - True, storage - false)')):
-    logger.debug("Recommendation data")
+    logger.debug('cluster_recommendation received request')
     try:
+        # todo found_fqn을 top_n으로 바꿔어야한다.
         found_fqn = __find_most_similar_data(fqn, table_type)
 
         if found_fqn == -1:
             return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {fqn}'))
+        # todo 이거 list로 return 하게끔 바꿔야겠지?
         return BaseCommonModel(status=200, data=RecommendationModel(fqn=found_fqn))
     except Exception as e:
-        return BaseCommonModel(status=404, error=ErrorModel(detail=f'Error Occured by {e}'))
+        return BaseCommonModel(status=404, error=ErrorModel(detail=f'Error Occurred by {e}'))

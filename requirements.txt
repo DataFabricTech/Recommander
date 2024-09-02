@@ -8,3 +8,6 @@ hdbscan~=0.8.38.post1
 PyYAML~=6.0.2
 APScheduler~=3.10.4
 uvicorn~=0.30.6
+torch~=2.4.0
+transformers~=4.44.2
+SQLAlchemy~=2.0.32
