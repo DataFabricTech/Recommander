@@ -34,12 +34,20 @@ open_metadata:
   port: 8080
   id: root
   pw: PASSWORD
-  document_limit: 10000000
-  table_sample_limit: 10000000
+  limit: 10000000
   min_cluster_size: 2
   top_n: 5
 
-embedding:
-  queue_max_size: 5
-  top_similarity_threshold: 5
+database:
+  dialects: postgresql
+  host: localhost
+  port: 5432
+  id: <ID>
+  pw: <PW>
+  db: <DB>
 
+recommend_settings:
+  recommended_count: 5
+
+  clustering:
+    trained_model_path: ./trained_models

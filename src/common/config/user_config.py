@@ -49,11 +49,9 @@ class _OpenMetadata:
     port = '8080'
     id = 'root'
     pw = 'PASSWORD'
-    document_limit = '1000000'
-    table_sample_limit = '1000000'
+    limit = '1000000'
     min_cluster_size = 2
     top_n = 5
-    trained_model_path = './trained_models/'
 
     def get_table_url(self):
         return 'http://{}:{}/api/v1/tables/name/'.format(self.host, self.port)
@@ -61,27 +59,45 @@ class _OpenMetadata:
     def get_storage_url(self):
         return 'http://{}:{}/api/v1/containers/name/'.format(self.host, self.port)
 
-    def get_document_url(self):
-        return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.document_limit)
+    def get_table_document_url(self):
+        return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.limit)
+
+    def get_storage_document_url(self):
+        return 'http://{}:{}/api/v1/containers?limit={}'.format(self.host, self.port, self.limit)
 
     def get_login_url(self):
         return 'http://{}:{}/api/v1/users/login'.format(self.host, self.port)
 
     def get_tables_url(self):
         return ('http://{}:{}/api/v1/tables?limit={}&include=non-deleted'
-                .format(self.host, self.port, self.table_sample_limit))
+                .format(self.host, self.port, self.limit))
 
-    def get_tables_sample_url(self, fqn: str):
-        return 'http://{}:{}/api/v1/tables/{}/sampleData'.format(self.host, self.port, fqn)
+    def get_tables_sample_url(self):
+        return 'http://{}:{}/api/v1/tables/{}'.format(self.host, self.port, '{}/sampleData')
 
-    def get_storages_sample_url(self, fqn: str):
-        return 'http://{}:{}/api/v1/containers/{}/sampleData'.format(self.host, self.port, fqn)
+    def get_storages_sample_url(self):
+        return 'http://{}:{}/api/v1/containers/{}'.format(self.host, self.port, '{}/sampleData')
 
 
-class _Embedding:
-    queue_max_size = 5
-    top_similarity_threshold = 5
+class _DataBase:
+    dialects = 'postgresql'
+    host = 'localhost'
+    port = '8080'
+    id = '<ID>'
+    pw = '<PASSWORD>'
+    db = '<DATABASE>'
 
+    def get_database_url(self):
+        return '{}://{}:{}@{}:{}/{}'.format(self.dialects, self.id, self.pw, self.host, self.port, self.db)
+
+
+class _Clustering:
+    trained_model_path = './trained_models/'
+
+
+class _RecommendSettings:
+    max_recommended_count = 5
+    clustering = _Clustering()
 
 
 class Config(BaseConfig):
@@ -92,18 +108,10 @@ class Config(BaseConfig):
 
     cron = _Cron()
     open_metadata = _OpenMetadata()
-    embedding = _Embedding()
+    database = _DataBase()
+    recommend_settings = _RecommendSettings()
+    clustering = _Clustering()
 
 
 if __name__ == '__main__':
-    configPath = "/Users/koseungbeom/git/Recommender/config_templates/config.yml"
-    Config.init("/Users/koseungbeom/git/Recommender/config_templates/config.yml")
-
-    # print(Config.server.host)
-    # print(type(Config.server.uvicorn), Config.server.uvicorn)
-    # print(Config.log.level)
-    # print(Config.internal.maximum_size)
-    # print(Config.internal.batch_rows)
-    # print(Config.internal.get_maximum_size())
-    # print(Config.join.maximum_size)
-    # print(Config.join.get_maximum_size())
+    pass

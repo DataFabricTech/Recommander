@@ -34,7 +34,20 @@ open_metadata:
   port: 8585
   id: admin
   pw: admin
-  limit: 100
+  limit: 50
   min_cluster_size: 2
   top_n: 5
 
+database:
+  dialects: postgresql
+  host: 192.168.106.104
+  port: 35432
+  id: postgres
+  pw: password
+  db: recommend
+
+recommend_settings:
+  recommended_count: 5
+
+  clustering:
+    trained_model_path: /Users/koseungbeom/git/Recommender/trained_models

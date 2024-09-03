@@ -1,4 +1,8 @@
+import logging
+
 import yaml
+
+logger = logging.getLogger()
 
 
 class Struct(object):
@@ -6,7 +10,6 @@ class Struct(object):
         self.merge_objects(default_obj, obj)
 
     def merge_objects(self, default_obj, obj):
-        # 기본 객체와 새로운 객체를 병합
         for k, v in obj.items():
             default_struct = getattr(default_obj, k, None)
             if isinstance(v, dict):
@@ -15,11 +18,9 @@ class Struct(object):
             else:
                 setattr(self, k, v)
 
-        # 기본 객체의 속성을 새로운 객체에 없는 경우 추가
         self.add_missing_attributes(default_obj, obj)
 
     def copy_default_attributes(self, default_struct, k):
-        # 기본 속성을 복사
         if default_struct is not None:
             new_struct = getattr(self, k)
             for default_k in dir(default_struct):
@@ -55,7 +56,7 @@ class BaseConfig(object):
                     loaded_config = yaml.safe_load(fd)
                     cls.apply_config(loaded_config)
             except FileNotFoundError:
-                print(f"Config file {config_file_path} not found.")
+                logger.error(f"Config file {config_file_path} not found.")
 
     @classmethod
     def apply_config(cls, config_data):
@@ -69,7 +70,6 @@ class BaseConfig(object):
             else:
                 setattr(cls, k, v)
 
-            # 유효성 검사 실행
             cls.run_validation_check(default_struct, k)
 
     @classmethod

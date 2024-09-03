@@ -8,53 +8,46 @@ import json
 from app.init.config import Config
 from app.models.dictionary_enum import DictionaryKeys
 
-'''
-TfidfVectorizer().fit_transform() - `train data`에 사용해야하는 함수 (label(?)을 만드는 작업)
-TfidfVectorizer().transform() - train data를 이용하여 `test data`에 적용하는 함수 (만들어진 label(?)을 사용하는 작업)
-
-clustering은 memory가 많이 드는 작업으로, 주기적(새벽 시간대)를 이용한 Clustering 구축하는 것이 좋아보인다. 
-'''
-
 logger = logging.getLogger()
 
 
-def extract_text_from_table_json(json_data):
-    '''
-    json 데이터에서 머신러닝 돌릴 때 필요한 데이터를 추출하는 함수
-    :param json_data: 파싱할 json데이터
-    :return: str, fqn
-    '''
-    texts = []
-    texts.append(json_data[DictionaryKeys.NAME])
-    texts.append(json_data[DictionaryKeys.DESCRIPTION]) if DictionaryKeys.DESCRIPTION in json_data else None
-    texts.append(json_data[DictionaryKeys.SERVICE][DictionaryKeys.DISPLAY_NAME])
+def extract_text_from_table_json(json_data: dict) -> (str, str):
+    """
+    원천 데이터 전처리 함수
 
-    for column in json_data[DictionaryKeys.COLUMNS]:
-        texts.append(column[DictionaryKeys.NAME])
+    :param json_data: 원천 데이터
+    :return: 전처리 데이터
+    """
+    texts = [json_data[DictionaryKeys.NAME.value]]
+    texts.append(json_data[DictionaryKeys.DESCRIPTION.value]) if DictionaryKeys.DESCRIPTION.value in json_data else None
+    texts.append(json_data[DictionaryKeys.SERVICE.value][DictionaryKeys.DISPLAY_NAME.value])
+
+    for column in json_data[DictionaryKeys.COLUMNS.value]:
+        texts.append(column[DictionaryKeys.NAME.value])
         # texts.append(column['dataType'])
-        texts.append(column[DictionaryKeys.DESCRIPTION]) if DictionaryKeys.DESCRIPTION in column else None
-        for tag in column.get(DictionaryKeys.TAGS, []):
-            texts.append(tag[DictionaryKeys.TAG_FQN])
-            texts.append(tag[DictionaryKeys.DESCRIPTION])
+        texts.append(column[DictionaryKeys.DESCRIPTION.value]) if DictionaryKeys.DESCRIPTION.value in column else None
+        for tag in column.get(DictionaryKeys.TAGS.value, []):
+            texts.append(tag[DictionaryKeys.TAG_FQN.value])
+            texts.append(tag[DictionaryKeys.DESCRIPTION.value])
 
-    for constraint in json_data.get(DictionaryKeys.TABLE_CONSTRAINTS, []):
-        texts.append(constraint[DictionaryKeys.CONSTRAINT_TYPE])
-        texts.extend(constraint[DictionaryKeys.COLUMNS])
-        texts.extend(constraint.get(DictionaryKeys.REFERRED_COLUMNS, []))
+    for constraint in json_data.get(DictionaryKeys.TABLE_CONSTRAINTS.value, []):
+        texts.append(constraint[DictionaryKeys.CONSTRAINT_TYPE.value])
+        texts.extend(constraint[DictionaryKeys.COLUMNS.value])
+        texts.extend(constraint.get(DictionaryKeys.REFERRED_COLUMNS.value, []))
 
-    for tag in json_data.get(DictionaryKeys.TAGS, []):
-        texts.append(tag[DictionaryKeys.TAG_FQN])
-        texts.append(tag[DictionaryKeys.DESCRIPTION])
+    for tag in json_data.get(DictionaryKeys.TAGS.value, []):
+        texts.append(tag[DictionaryKeys.TAG_FQN.value])
+        texts.append(tag[DictionaryKeys.DESCRIPTION.value])
 
-    return ' '.join(texts), json_data[DictionaryKeys.FULLY_QUALIFIED_NAME]
+    return ' '.join(texts), json_data[DictionaryKeys.ID.value]
 
 
 def get_token():
-    '''
+    """
     오픈메타데이터의 토큰
 
     :return: token: string
-    '''
+    """
     logger.debug("get open metadata token")
 
     import base64
@@ -84,25 +77,26 @@ def get_token():
         raise
 
 
-def get_documents():
-    '''
+def get_documents(documents: dict, table_type: bool) -> dict:
+    """
     등록되어 있는 데이터 모델을 가져오는 함수
 
     :return: documents:List[str] - list of data model, fqn:str - list of data model's fqn
-    '''
+    """
     logger.debug("get open metadata document")
 
-    url = Config.open_metadata.get_document_url()
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
     }
 
-    documents = []
-    fqns = []
+    document_url = (
+        f"{(Config.open_metadata.get_table_document_url()
+            if table_type else Config.open_metadata.get_storage_document_url())}"
+    )
 
     try:
-        response = requests.request("GET", url, headers=header, data={})
+        response = requests.request("GET", document_url, headers=header, data={})
         tables = json.loads(response.text)
     except requests.exceptions.RequestException as e:
         logger.error(f"RequestException error: {e}")
@@ -112,18 +106,17 @@ def get_documents():
         raise
 
     for json_data in tables['data']:
-        document, fqn = extract_text_from_table_json(json_data)
-        documents.append(document)
-        fqns.append(fqn)
+        document, document_id = extract_text_from_table_json(json_data)
+        documents[document_id] = document
 
-    return documents, fqns
+    return documents
 
 
 def get_data(fqn: str, table_type: bool):
-    '''
-    새로운 데이터를 가져오는 함수
+    """
+    table/storage의 데이터를 가져오는 함수
     :return: data: json
-    '''
+    """
     logger.debug("get open metadata data")
 
     url = (f"{(Config.open_metadata.get_table_url() if table_type else Config.open_metadata.get_storage_url())}"
@@ -144,37 +137,55 @@ def get_data(fqn: str, table_type: bool):
         raise
 
 
-def get_sample(fqn: str, table_type: bool):
-    logger.debug("get open metadata sample")
-    url = (f"{(Config.open_metadata.get_tables_sample_url(fqn)
-               if table_type else Config.open_metadata.get_storages_sample_url(fqn))}"
-           f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
+def __get_samples(samples: dict, table_type: bool) -> dict:
+    """
+    table/storage의 sample 데이터를 가져오는 함수
+
+    :param samples: 이미 존재하는 sample의 dictionary
+    :param table_type: table/storage를 구분하는 bool 값
+
+    :return: 추가 sample
+    """
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
     }
 
-    response = requests.request("GET", url, headers=header, data={})
+    document_url = (
+        f"{(Config.open_metadata.get_table_document_url()
+            if table_type else Config.open_metadata.get_storage_document_url())}"
+    )
+
+    sample_url = (
+        f"{(Config.open_metadata.get_tables_sample_url()
+            if table_type else Config.open_metadata.get_storages_sample_url())}"
+    )
+
+    response = requests.request("GET", document_url, headers=header, data={})
     response_tables = json.loads(response.text)
-    sample = {}
+
     for json_data in response_tables['data']:
         json_ = json.loads(
-            requests.request("GET", url,
-                             headers=header, data={}).text)
+            requests.request("GET", sample_url.format(json_data['id'].strip('\"')), headers=header, data={}).text)
 
-        if DictionaryKeys.SAMPLE_DATA not in json_:
+        if DictionaryKeys.SAMPLE_DATA.value not in json_:
             continue
 
-        rows = json_[DictionaryKeys.SAMPLE_DATA][DictionaryKeys.ROWS]
+        rows = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.ROWS.value]
 
-        columns = json_[DictionaryKeys.SAMPLE_DATA][DictionaryKeys.COLUMNS]
+        columns = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.COLUMNS.value]
         sample = {}
         df = pd.DataFrame(rows, columns=columns)
 
         for idx, column in enumerate(columns):
-            sample[column] = {DictionaryKeys.VALUES: sorted(df[column].values, key=lambda x: (x is None, x)),
-                              DictionaryKeys.DATA_TYPE: json_[DictionaryKeys.COLUMNS][idx][DictionaryKeys.DATA_TYPE]}
+            sample[column] = {DictionaryKeys.VALUES.value: sorted(df[column].values, key=lambda x: (x is None, x)),
+                              DictionaryKeys.DATA_TYPE.value: json_[DictionaryKeys.COLUMNS.value][idx][
+                                  DictionaryKeys.DATA_TYPE.value]}
 
-        sample[json_[DictionaryKeys.ID]] = {DictionaryKeys.COLUMNS: sample}
+        samples[json_[DictionaryKeys.ID.value]] = {DictionaryKeys.COLUMNS.value: sample}
 
-    return sample
+    return samples
+
+
+def get_samples() -> dict:
+    return __get_samples(__get_samples({}, True), False)

@@ -35,18 +35,16 @@ class RecommenderWithDB(Base):
         self.recommend_id = recommend_id
 
 
-
-
 @dataclass(order=True)
 class RecommendEntity:
     """
-    비교 모델의 추천을 위한 엔티티로써, 비교 모델의 fqn과 일치(포함)하는 컬럼의 개수, 컬럼들의 유사도중에 Top(N개)의 평균값을 이용한다.
+    비교 모델의 추천을 위한 엔티티로써, 비교 모델의 id과 일치(포함)하는 컬럼의 개수, 컬럼들의 유사도중에 Top(N개)의 평균값을 이용한다.
 
     추천 순서 : 일치(포함)하는 컬럼의 개수 > 유사도
     """
     sort_index: tuple = field(init=False, repr=False)
 
-    target_fqn: str
+    target_id: str
     inclusion_column_count: int
     top_similarity_average: float
 
