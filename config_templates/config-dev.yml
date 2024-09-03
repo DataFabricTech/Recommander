@@ -30,18 +30,18 @@ cron:
   minute: 0
 
 open_metadata:
-  host: 192.168.105.2
-  port: 8585
-  id: admin
-  pw: admin
+  host: localhost
+  port: 8080
+  id: <ID>
+  pw: <PW>
   limit: 50
   min_cluster_size: 2
   top_n: 5
 
 database:
   dialects: postgresql
-  host: 192.168.106.104
-  port: 35432
+  host: localhost
+  port: 5432
   id: postgres
   pw: password
   db: recommend
@@ -50,4 +50,4 @@ recommend_settings:
   recommended_count: 5
 
   clustering:
-    trained_model_path: /Users/koseungbeom/git/Recommender/trained_models
+    trained_model_path: ./trained_models
