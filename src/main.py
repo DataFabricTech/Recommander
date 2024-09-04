@@ -2,14 +2,8 @@ from app.routers import routers
 from app.server import *
 from common.log import *
 
-from app.routers.training_service import init_clustering
 
 from apscheduler.schedulers.background import BackgroundScheduler
-
-'''
-1. '신규 데이터'에 대한 기존 데이터 추천
-2. '주기적인' 기존 데이터에 대한 벡터화
-'''
 
 
 def include_routers():
@@ -47,6 +41,9 @@ def start():
 
 
 if __name__ == '__main__':
+    from app.routers.training_service import init_clustering
+    from app.routers.training_service import init_embedding
+
     if Config.sentry.enable:
         import sentry_sdk
         from sentry_sdk.integrations.logging import LoggingIntegration
@@ -66,5 +63,6 @@ if __name__ == '__main__':
     scheduler = BackgroundScheduler()
 
     scheduler.add_job(init_clustering, 'cron', hour=Config.cron.hour, minute=Config.cron.minute)
+    scheduler.add_job(init_embedding, 'cron', hour=Config.cron.hour, minute=Config.cron.minute)
 
     start()

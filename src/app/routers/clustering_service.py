@@ -22,7 +22,10 @@ def __get_recommended_id(target_id: str) -> list:
     :param target_id: 추천을 받고자 하는 데이터 모델의 id
     :return list: 추천 id
     """
+    logger.debug('__get_recommended_id start')
+
     if not os.path.exists(Config.clustering.trained_model_path):
+        logger.info("not exist clustering model")
         return []
 
     try:
@@ -55,13 +58,14 @@ def __get_recommended_id(target_id: str) -> list:
                 200: {'description': 'Recommend id list returned', 'model': RecommendationModel},
                 404: {"description": "No data found", "model": BaseCommonModel}
             })
-async def clustering_recommend(
+def clustering_recommend(
         target_id: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 id 값')):
     logger.debug('cluster_recommendation received request')
     try:
         found_id_list = __get_recommended_id(target_id)
 
         if found_id_list == -1:
+            logger.info("clustering result is nothing")
             return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {target_id}'))
         return BaseCommonModel(status=200, data=RecommendationModel(recommended_id_list=found_id_list))
     except Exception as e:

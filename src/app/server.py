@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from app.models.response_model import ErrorModel, RecommendationModel
+
 description = """
 Hello!
 This is Recommender API with Fast API. 🚀
@@ -8,20 +10,9 @@ This is Recommender API with Fast API. 🚀
 tags_metadata = [
 ]
 
-responses = {  # todo - status_code에 대한 수정 필요
-    200: {"content": {
-        "application/json": {
-            "example": {"username": "return username place"}
-        }
-    }},
-    404: {"description": "User not Found",
-          "content": {
-              "application/json": {
-                  "example": {"message": "User not Found"}
-              }
-          }},
-    302: {"description": "The user was moved"},
-    403: {"description": "Not enough privileges"},
+responses = {
+    200: {"description": "recommend id returned", "data":RecommendationModel},
+    404: {"description": "No data found", "error": ErrorModel(detail="The reason why")},
     418: {"description": "this is fast exception"},
 }
 app = FastAPI(

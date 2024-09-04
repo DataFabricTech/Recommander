@@ -2,3 +2,5 @@
 .idea
 sample/open_metadata_service.py_
 src/trained_models
+trained_models
+config_templates/config-dev.yml

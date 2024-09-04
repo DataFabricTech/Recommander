@@ -146,6 +146,8 @@ def __get_samples(samples: dict, table_type: bool) -> dict:
 
     :return: 추가 sample
     """
+    logger.debug('__get_sample start')
+
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
@@ -162,27 +164,46 @@ def __get_samples(samples: dict, table_type: bool) -> dict:
     )
 
     response = requests.request("GET", document_url, headers=header, data={})
-    response_tables = json.loads(response.text)
+    try:
+        response_tables = json.loads(response.text)
 
-    for json_data in response_tables['data']:
-        json_ = json.loads(
-            requests.request("GET", sample_url.format(json_data['id'].strip('\"')), headers=header, data={}).text)
+        for json_data in response_tables['data']:
+            json_ = json.loads(
+                requests.request("GET", sample_url.format(json_data['id'].strip('\"')), headers=header, data={}).text)
 
-        if DictionaryKeys.SAMPLE_DATA.value not in json_:
-            continue
+            if DictionaryKeys.SAMPLE_DATA.value not in json_:
+                continue
 
-        rows = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.ROWS.value]
+            rows = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.ROWS.value]
 
-        columns = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.COLUMNS.value]
-        sample = {}
-        df = pd.DataFrame(rows, columns=columns)
+            columns = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.COLUMNS.value]
+            sample = {}
+            df = pd.DataFrame(rows, columns=columns)
 
-        for idx, column in enumerate(columns):
-            sample[column] = {DictionaryKeys.VALUES.value: sorted(df[column].values, key=lambda x: (x is None, x)),
-                              DictionaryKeys.DATA_TYPE.value: json_[DictionaryKeys.COLUMNS.value][idx][
-                                  DictionaryKeys.DATA_TYPE.value]}
+            for idx, column in enumerate(columns):
+                sample[column] = {DictionaryKeys.VALUES.value: sorted(df[column].values, key=lambda x: (x is None, x)),
+                                  DictionaryKeys.DATA_TYPE.value: json_[DictionaryKeys.COLUMNS.value][idx][
+                                      DictionaryKeys.DATA_TYPE.value]}
 
-        samples[json_[DictionaryKeys.ID.value]] = {DictionaryKeys.COLUMNS.value: sample}
+            samples[json_[DictionaryKeys.ID.value]] = {DictionaryKeys.COLUMNS.value: sample}
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request exception: {e}")
+        raise
+    except KeyError as e:
+        logger.error(f"Key exception: {e}")
+        raise
+    except ValueError as e:
+        logger.error(f"Value exception: {e}")
+        raise
+    except TypeError or AttributeError as e:
+        logger.error(f"Type/Attribute exception: {e}")
+        raise
+    except IndexError as e:
+        logger.error(f"Index exception: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected exception: {e}")
+        raise
 
     return samples
 

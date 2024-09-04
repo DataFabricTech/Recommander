@@ -16,7 +16,6 @@ router = APIRouter(
 )
 
 
-# todo 주기적
 def __init_clustering():
     """
     기존 데이터를 이용하여 HDBScan 기법 적용하여 추천 항목을 만드는 함수
@@ -88,6 +87,8 @@ def __save_recommended(recommender: dict):
 
     :param recommender: 정렬되어 있는 n가지 추천
     """
+    logger.debug("__save_recommended start")
+
     from sqlalchemy.orm import class_mapper
     from app.models.recommend_classes import RecommenderWithDB, Base
     from sqlalchemy import create_engine
@@ -120,11 +121,11 @@ def __save_recommended(recommender: dict):
     session.commit()
 
 
-# todo 주기적으로 돌아가는 로직 필요
 def __init_embedding():
     """
     기존 데이터를 이용하여 Embedding 기법을 적용하여 추천 항목을 만드는 함수
     """
+
     from itertools import combinations, product
     from app.models.recommend_classes import OverrodePriorityQueue, RecommendEntity
     from app.models.dictionary_enum import DictionaryKeys
@@ -133,10 +134,14 @@ def __init_embedding():
 
     samples = open_metadata_service.get_samples()
 
-    for key, value in samples.items():
-        for column_name, column_data in value[DictionaryKeys.COLUMNS.value].items():
-            values_str = ' '.join(map(str, column_data[DictionaryKeys.VALUES.value]))
-            column_data[DictionaryKeys.EMBEDDINGS_RESULT.value] = __get_embedding(values_str)
+    try:
+        for key, value in samples.items():
+            for column_name, column_data in value[DictionaryKeys.COLUMNS.value].items():
+                values_str = ' '.join(map(str, column_data[DictionaryKeys.VALUES.value]))
+                column_data[DictionaryKeys.EMBEDDINGS_RESULT.value] = __get_embedding(values_str)
+    except KeyError as e:
+        logger.error(f"Key exception: {e}")
+        raise
 
     ids = samples.keys()
     ids_combinations = list(combinations(ids, 2))
@@ -186,7 +191,6 @@ def __init_embedding():
     __save_recommended(samples)
 
 
-# todo aynsc
 @router.get(path='/clustering',
             response_model=BaseCommonModel,
             summary='Train a model using existing data with clustering',
@@ -195,7 +199,9 @@ def __init_embedding():
             tags=['ML Training'],
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )
-def init_clustering():
+async def init_clustering():
+    logger.debug("__init_clustering start")
+
     try:
         __init_clustering()
         return BaseCommonModel(status=200, data=MessageModel(message='Successfully trained'))
@@ -203,7 +209,6 @@ def init_clustering():
         return BaseCommonModel(status=404, error=ErrorModel(detail=str(e)))
 
 
-# todo 설명 바꾸기 + aynsc
 @router.get(path='/embedding',
             response_model=BaseCommonModel,
             summary='Train a model using existing data with embedding',
@@ -212,7 +217,9 @@ def init_clustering():
             tags=['ML Training'],
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )
-def init_embedding():
+async def init_embedding():
+    logger.debug("__init_embedding start")
+
     try:
         __init_embedding()
     except Exception as e:
