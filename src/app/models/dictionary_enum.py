@@ -10,6 +10,7 @@ class DictionaryKeys(Enum):
 
     SERVICE = 'service'
 
+    DATA_MODEL = 'dataModel'
     DATA_TYPE = "dataType"
     COLUMNS = "columns"
     VALUES = "values"

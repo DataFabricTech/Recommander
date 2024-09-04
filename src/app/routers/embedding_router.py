@@ -9,7 +9,7 @@ from common.config import Config
 logger = logging.getLogger()
 
 router = APIRouter(
-    prefix=os.path.join("/app/recommend"),
+    prefix=os.path.join("/api/recommend"),
     tags=['Recommend']
 )
 

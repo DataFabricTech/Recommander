@@ -22,7 +22,7 @@ def extract_text_from_table_json(json_data: dict) -> (str, str):
     texts.append(json_data[DictionaryKeys.DESCRIPTION.value]) if DictionaryKeys.DESCRIPTION.value in json_data else None
     texts.append(json_data[DictionaryKeys.SERVICE.value][DictionaryKeys.DISPLAY_NAME.value])
 
-    for column in json_data[DictionaryKeys.COLUMNS.value]:
+    for column in json_data.get(DictionaryKeys.COLUMNS.value, []):
         texts.append(column[DictionaryKeys.NAME.value])
         # texts.append(column['dataType'])
         texts.append(column[DictionaryKeys.DESCRIPTION.value]) if DictionaryKeys.DESCRIPTION.value in column else None
@@ -168,6 +168,7 @@ def __get_samples(samples: dict, table_type: bool) -> dict:
         response_tables = json.loads(response.text)
 
         for json_data in response_tables['data']:
+
             json_ = json.loads(
                 requests.request("GET", sample_url.format(json_data['id'].strip('\"')), headers=header, data={}).text)
 
@@ -181,9 +182,12 @@ def __get_samples(samples: dict, table_type: bool) -> dict:
             df = pd.DataFrame(rows, columns=columns)
 
             for idx, column in enumerate(columns):
-                sample[column] = {DictionaryKeys.VALUES.value: sorted(df[column].values, key=lambda x: (x is None, x)),
-                                  DictionaryKeys.DATA_TYPE.value: json_[DictionaryKeys.COLUMNS.value][idx][
-                                      DictionaryKeys.DATA_TYPE.value]}
+                sample[column] = {
+                    DictionaryKeys.VALUES.value: sorted(df[column].values, key=lambda x: (x is None, str(x))),
+                    DictionaryKeys.DATA_TYPE.value: json_[DictionaryKeys.COLUMNS.value][idx][
+                        DictionaryKeys.DATA_TYPE.value] if table_type else
+                    json_[DictionaryKeys.DATA_MODEL.value][DictionaryKeys.COLUMNS.value][idx][
+                        DictionaryKeys.DATA_TYPE.value]}
 
             samples[json_[DictionaryKeys.ID.value]] = {DictionaryKeys.COLUMNS.value: sample}
     except requests.exceptions.RequestException as e:

@@ -31,7 +31,8 @@ ARG PROJECT_VERSION=v1.0.0
 
 WORKDIR /app
 
-RUN apt update && apt install -y build-essential
+RUN apt update && apt install -y build-essential \
+	libpq-dev
 
 RUN pip3 install --upgrade pip \
     && pip3 install --no-cache-dir -r requirements.txt

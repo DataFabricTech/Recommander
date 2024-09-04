@@ -61,7 +61,7 @@ def __init_clustering():
         raise
 
 
-def __get_embedding(text: str):
+def __get_embedding(text: str, tokenizer, model):
     """
     text를 받아서 embedding하는 함수
 
@@ -69,10 +69,6 @@ def __get_embedding(text: str):
     :return: Embedding한 결과값
     """
     import torch
-    from transformers import BertTokenizer, BertModel
-
-    tokenizer = BertTokenizer.from_pretrained('klue/bert-base')
-    model = BertModel.from_pretrained('klue/bert-base')
     inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=128)
 
     with torch.no_grad():
@@ -131,6 +127,10 @@ def __init_embedding():
     from app.models.dictionary_enum import DictionaryKeys
     import numpy as np
     from sklearn.metrics.pairwise import cosine_similarity
+    from transformers import BertTokenizer, BertModel
+
+    tokenizer = BertTokenizer.from_pretrained('klue/bert-base')
+    model = BertModel.from_pretrained('klue/bert-base')
 
     samples = open_metadata_service.get_samples()
 
@@ -138,7 +138,7 @@ def __init_embedding():
         for key, value in samples.items():
             for column_name, column_data in value[DictionaryKeys.COLUMNS.value].items():
                 values_str = ' '.join(map(str, column_data[DictionaryKeys.VALUES.value]))
-                column_data[DictionaryKeys.EMBEDDINGS_RESULT.value] = __get_embedding(values_str)
+                column_data[DictionaryKeys.EMBEDDINGS_RESULT.value] = __get_embedding(values_str, tokenizer, model)
     except KeyError as e:
         logger.error(f"Key exception: {e}")
         raise
@@ -188,7 +188,7 @@ def __init_embedding():
         recommended_dict[source_id] = source_recommender
         recommended_dict[comparison_id] = comparison_recommender
 
-    __save_recommended(samples)
+    __save_recommended(recommended_dict)
 
 
 @router.get(path='/clustering',
@@ -222,6 +222,7 @@ async def init_embedding():
 
     try:
         __init_embedding()
+        return BaseCommonModel(status=200, data=MessageModel(message='Successfully trained'))
     except Exception as e:
         return BaseCommonModel(status=404, error=ErrorModel(detail=str(e)))
 
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     __init_embedding()
 
     # 1.2. use embedding
-    from app.routers.embedding_service import embedding_recommend
+    from app.routers.embedding_router import embedding_recommend
 
     document_id = '66e39180-b276-484c-aa19-34efa560f32b'
 
@@ -250,7 +251,7 @@ if __name__ == "__main__":
     __init_clustering()
 
     # 2.2. use clustering
-    from app.routers.clustering_service import clustering_recommend
+    from app.routers.clustering_router import clustering_recommend
 
     document_id = '66e39180-b276-484c-aa19-34efa560f32b'
 

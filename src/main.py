@@ -41,8 +41,8 @@ def start():
 
 
 if __name__ == '__main__':
-    from app.routers.training_service import init_clustering
-    from app.routers.training_service import init_embedding
+    from app.routers.training_router import init_clustering
+    from app.routers.training_router import init_embedding
 
     if Config.sentry.enable:
         import sentry_sdk
