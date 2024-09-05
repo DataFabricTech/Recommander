@@ -50,7 +50,7 @@ class _OpenMetadata:
     id = 'root'
     pw = 'PASSWORD'
     limit = '1000000'
-    min_cluster_size = 2
+    min_cluster_size = 5
     top_n = 5
 
     def get_table_url(self):

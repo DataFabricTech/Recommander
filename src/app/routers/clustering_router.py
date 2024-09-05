@@ -53,7 +53,6 @@ def __get_recommended_id(target_id: str) -> list:
             summary='Find the most similar id using clustering algorithm',
             description='This API uses machine learning results to find the most similar data to the currently '
                         'provided value',
-            tags=['recommendation'],
             responses={
                 200: {'description': 'Recommend id list returned', 'model': RecommendationModel},
                 404: {"description": "No data found", "model": BaseCommonModel}

@@ -9,7 +9,6 @@ logger = logging.getLogger()
 
 router = APIRouter(
     prefix=os.path.join("/api/recommender/status"),
-    tags=['Check'],
 )
 
 

@@ -9,3 +9,6 @@
 
 ## 실행 방법
 - docker run -it --rm -v ${ConfigFilePath}:/app/config_templates/config.yml -p 8080:8080 repo.iris.tools/datafabric/recommender:${ImageTag}
+
+## Swagger 문서
+- http://127.0.0.1:8080/recommender/docs

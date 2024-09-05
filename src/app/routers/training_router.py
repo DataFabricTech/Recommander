@@ -197,7 +197,6 @@ def __init_embedding():
             summary='Train a model using existing data with clustering',
             description='This API manually executes the training of a machine learning model using existing data with clustering.'
                         'It allows the model to learn patterns and make predictions based on the provided data',
-            tags=['ML Training'],
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )
 async def init_clustering():
@@ -216,7 +215,6 @@ async def init_clustering():
             summary='Train a model using existing data with embedding',
             description='This API manually executes the training of a machine learning model using existing data with embedding.'
                         'It allows the model to learn patterns and make predictions based on the provided data',
-            tags=['ML Training'],
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )
 async def init_embedding():
