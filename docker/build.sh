@@ -32,6 +32,7 @@ function build() {
         echo $tag
 
         docker build -f ./docker/Dockerfile -t $imageName:$tag .
+	      docker tag $imageName:$tag $imageName:latest
 
         if [ $? != 0 ]; then
                 echo "[ERROR] docker build failed."

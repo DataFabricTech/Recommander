@@ -4,6 +4,7 @@ import os
 from fastapi import APIRouter
 
 from app.services import open_metadata_service
+from common.async_loop import loop_with_function
 from common.config import Config
 
 from app.models.response_model import BaseCommonModel, ErrorModel, MessageModel
@@ -203,7 +204,8 @@ async def init_clustering():
     logger.debug("__init_clustering start")
 
     try:
-        __init_clustering()
+        await loop_with_function(__init_clustering)
+
         return BaseCommonModel(status=200, data=MessageModel(message='Successfully trained'))
     except Exception as e:
         return BaseCommonModel(status=404, error=ErrorModel(detail=str(e)))
@@ -221,7 +223,8 @@ async def init_embedding():
     logger.debug("__init_embedding start")
 
     try:
-        __init_embedding()
+        await loop_with_function(__init_embedding)
+
         return BaseCommonModel(status=200, data=MessageModel(message='Successfully trained'))
     except Exception as e:
         return BaseCommonModel(status=404, error=ErrorModel(detail=str(e)))

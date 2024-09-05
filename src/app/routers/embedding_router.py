@@ -46,10 +46,13 @@ def __get_recommended_id(target_id: str) -> list:
                 200: {'description': 'Recommend id list returned', 'model': RecommendationModel},
                 404: {"description": "No data found", "model": BaseCommonModel}
             })
-def embedding_recommend(target_id: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 id 값')):
+async def embedding_recommend(target_id: str = Query(..., description='유사한 데이터를 찾기 위한 데이터의 id 값')):
+    from common.async_loop import loop_with_function
     logger.debug("embedding_recommend received request")
+
     try:
-        found_id_list = __get_recommended_id(target_id)
+        found_id_list = await loop_with_function(__get_recommended_id, target_id)
+
         if len(found_id_list) == 0:
             logger.info("embedding result is nothing")
             return BaseCommonModel(status=404, error=ErrorModel(detail=f'No data found for {target_id}'))
