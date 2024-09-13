@@ -24,3 +24,5 @@ class DictionaryKeys(Enum):
     ROWS = 'rows'
 
     EMBEDDINGS_RESULT = "embeddings_result"
+
+    CODE = "code"

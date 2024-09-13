@@ -54,10 +54,10 @@ class _OpenMetadata:
     top_n = 5
 
     def get_table_url(self):
-        return 'http://{}:{}/api/v1/tables/name/'.format(self.host, self.port)
+        return 'http://{}:{}/api/v1/tables/'.format(self.host, self.port)
 
     def get_storage_url(self):
-        return 'http://{}:{}/api/v1/containers/name/'.format(self.host, self.port)
+        return 'http://{}:{}/api/v1/containers/'.format(self.host, self.port)
 
     def get_table_document_url(self):
         return 'http://{}:{}/api/v1/tables?limit={}'.format(self.host, self.port, self.limit)
@@ -110,7 +110,6 @@ class Config(BaseConfig):
     open_metadata = _OpenMetadata()
     database = _DataBase()
     recommend_settings = _RecommendSettings()
-    clustering = _Clustering()
 
 
 if __name__ == '__main__':

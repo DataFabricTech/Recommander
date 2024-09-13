@@ -107,12 +107,12 @@ def get_documents(documents: dict, table_type: bool) -> dict:
 
     for json_data in tables['data']:
         document, document_id = extract_text_from_table_json(json_data)
-        documents[document_id] = document
+        documents[document_id] = (json_data[DictionaryKeys.NAME.value], document)
 
     return documents
 
 
-def get_data(fqn: str, table_type: bool):
+def get_document(target_id: str, table_type: bool):
     """
     table/storage의 데이터를 가져오는 함수
     :return: data: json
@@ -120,7 +120,7 @@ def get_data(fqn: str, table_type: bool):
     logger.debug("get open metadata data")
 
     url = (f"{(Config.open_metadata.get_table_url() if table_type else Config.open_metadata.get_storage_url())}"
-           f"{fqn.strip('\"') if table_type else '\"' + fqn.strip('\"') + '\"'}")
+           f"{target_id.strip('\"') if table_type else '\"' + target_id.strip('\"') + '\"'}")
     token = get_token()
     header = {
         "Authorization": f"Bearer {token}"
@@ -128,13 +128,25 @@ def get_data(fqn: str, table_type: bool):
 
     try:
         response = requests.request("GET", url, headers=header, data={})
-        return json.loads(response.text)
+        table = json.loads(response.text)
     except requests.exceptions.RequestException as e:
         logger.error(f"request exception: {e}")
         raise
     except json.decoder.JSONDecodeError as e:
         logger.error(f"Json load error: {e}")
         raise
+
+    documents = {}
+
+    if DictionaryKeys.CODE.value in table and table[DictionaryKeys.CODE.value] == 404:
+        logger.error(f"No document")
+        raise ValueError("No document found")
+
+    document, document_id = extract_text_from_table_json(table)
+    documents[document_id] = (table[DictionaryKeys.NAME.value], document)
+
+    return documents
+
 
 
 def __get_samples(samples: dict, table_type: bool) -> dict:

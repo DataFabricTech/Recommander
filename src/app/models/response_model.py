@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Union
+from typing import Union, List
 
 
 class MessageModel(BaseModel):
@@ -7,7 +7,7 @@ class MessageModel(BaseModel):
 
 
 class RecommendationModel(BaseModel):
-    recommended_id_list: list
+    recommended: Union[List[str], str] = None
 
 
 class ErrorModel(BaseModel):
