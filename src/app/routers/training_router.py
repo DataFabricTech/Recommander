@@ -255,7 +255,8 @@ def __init_embedding():
 @router.get(path='/clustering',
             response_model=BaseCommonModel,
             summary='Train a model using existing data with clustering',
-            description='This API manually executes the training of a machine learning model using existing data with clustering.'
+            description='This API manually executes the training of '
+                        'a machine learning model using existing data with clustering.'
                         'It allows the model to learn patterns and make predictions based on the provided data',
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )
@@ -273,7 +274,9 @@ async def init_clustering():
 @router.get(path='/embedding',
             response_model=BaseCommonModel,
             summary='Train a model using existing data with embedding',
-            description='This API manually executes the training of a machine learning model using existing data with embedding.'
+            description='Training will only occur when sample data is available.'
+                        'This API manually executes the training of '
+                        'a machine learning model using existing data with embedding.'
                         'It allows the model to learn patterns and make predictions based on the provided data',
             responses={404: {"description": "Train a model is fail", "model": ErrorModel}}
             )

@@ -39,7 +39,8 @@ def __get_embedding_recommended_id(target_id: str) -> list:
 @router.get(path="/embedding",
             response_model=BaseCommonModel,
             summary='Find the most similar id using embedding algorithm',
-            description='This API uses machine learning results to find the most similar data to the currently '
+            description='** You can only retrieve results that were trained using available sample data **'
+                        'This API uses machine learning results to find the most similar data to the currently '
                         'provided value',
             responses={
                 200: {'description': 'Recommend id list returned', 'model': RecommendationModel},
