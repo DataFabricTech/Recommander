@@ -180,11 +180,11 @@ def __get_samples(samples: dict, table_type: bool) -> dict:
         response_tables = json.loads(response.text)
 
         for json_data in response_tables['data']:
-
             json_ = json.loads(
                 requests.request("GET", sample_url.format(json_data['id'].strip('\"')), headers=header, data={}).text)
 
-            if DictionaryKeys.SAMPLE_DATA.value not in json_:
+            if (DictionaryKeys.SAMPLE_DATA.value not in json_ or
+                    DictionaryKeys.ROWS.value not in json_[DictionaryKeys.SAMPLE_DATA.value]):
                 continue
 
             rows = json_[DictionaryKeys.SAMPLE_DATA.value][DictionaryKeys.ROWS.value]

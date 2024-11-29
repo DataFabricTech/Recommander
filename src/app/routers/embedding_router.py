@@ -27,8 +27,6 @@ def __get_embedding_recommended_id(target_id: str) -> list:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    logger.debug('__get_recommended_id start')
-
     engine = create_engine(Config.database.get_database_url(), echo=False)
     Session = sessionmaker(bind=engine)
     session = Session()

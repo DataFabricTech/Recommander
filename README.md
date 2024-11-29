@@ -12,3 +12,4 @@
 
 ## Swagger 문서
 - http://127.0.0.1:8080/recommender/docs
+- http://192.168.109.254:30628/recommender/docs
